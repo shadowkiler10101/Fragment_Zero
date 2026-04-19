@@ -1,172 +1,214 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-us">
+
 <head>
 <meta charset="UTF-8">
 <title>Fragment Zero</title>
 
+<script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js"
+type="module"
+id="site"
+data-python="python3.12">
+
+#<!--
+import pygame
+import math
+import random
+import asyncio
+
+WIDTH, HEIGHT = 1000, 700
+FPS = 60
+BLACK = (5, 5, 10)
+WHITE = (255, 255, 255)
+RED = (255, 60, 60)
+CYAN = (0, 255, 255)
+GRAY = (50, 50, 50)
+GREEN = (0, 255, 100)
+YELLOW = (255, 255, 0)
+
+game_msg = ""
+msg_timer = 0
+
+def notify(text):
+    global game_msg, msg_timer
+    game_msg = text
+    msg_timer = 90
+
+class Loot(pygame.sprite.Sprite):
+    def __init__(self, pos):
+        super().__init__()
+        self.type = random.choice(["AMMO", "SHARD"])
+        self.image = pygame.Surface((12, 12))
+        self.image.fill(YELLOW if self.type == "AMMO" else CYAN)
+        self.rect = self.image.get_rect(center=pos)
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, angle, speed, damage, color):
+        super().__init__()
+        size = (12, 4) if speed > 15 else (6, 6)
+        self.image = pygame.Surface(size)
+        self.image.fill(color)
+        self.image = pygame.transform.rotate(self.image, -math.degrees(angle))
+        self.rect = self.image.get_rect(center=(x, y))
+        self.dx = math.cos(angle) * speed
+        self.dy = math.sin(angle) * speed
+        self.damage = damage
+
+    def update(self, obstacles):
+        self.rect.x += self.dx
+        self.rect.y += self.dy
+        if pygame.sprite.spritecollideany(self, obstacles) or self.rect.x < 0 or self.rect.x > WIDTH or self.rect.y < 0 or self.rect.y > HEIGHT:
+            self.kill()
+
+class Obstacle(pygame.sprite.Sprite):
+    def __init__(self, x, y, w, h):
+        super().__init__()
+        self.image = pygame.Surface((w, h))
+        self.image.fill(GRAY)
+        pygame.draw.rect(self.image, CYAN, (0,0,w,h), 1)
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((30, 30))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect(center=(random.randint(100, WIDTH-100), random.randint(100, HEIGHT-100)))
+        self.health = 30
+        self.speed = 2
+        self.state = "WANDER"
+        self.wander_timer = 0
+        self.dir = [random.uniform(-1, 1), random.uniform(-1, 1)]
+
+    def has_line_of_sight(self, target_pos, obstacles):
+        start = self.rect.center
+        end = target_pos
+        for wall in obstacles:
+            if wall.rect.clipline(start, end): return False
+        return True
+
+    def update(self, player_pos, obstacles):
+        dist = math.hypot(player_pos[0]-self.rect.centerx, player_pos[1]-self.rect.centery)
+        old_x, old_y = self.rect.x, self.rect.y
+        if 45 < dist < 400 and self.has_line_of_sight(player_pos, obstacles):
+            dx, dy = player_pos[0] - self.rect.centerx, player_pos[1] - self.rect.centery
+            self.rect.x += (dx/dist) * self.speed
+            self.rect.y += (dy/dist) * self.speed
+        else:
+            self.wander_timer -= 1
+            if self.wander_timer <= 0:
+                self.dir = [random.uniform(-1, 1), random.uniform(-1, 1)]
+                self.wander_timer = 60
+            self.rect.x += self.dir[0] * self.speed
+            self.rect.y += self.dir[1] * self.speed
+
+        for wall in obstacles:
+            if self.rect.colliderect(wall.rect):
+                self.rect.x, self.rect.y = old_x, old_y
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((35, 35))
+        self.image.fill(WHITE)
+        self.rect = self.image.get_rect(center=(100, 100))
+        self.hp = 100
+        self.mode = "SNIPER"
+        self.energy = 0
+        self.ammo = 50
+
+    def move(self, keys, obstacles):
+        old_pos = self.rect.copy()
+        if keys[pygame.K_w]: self.rect.y -= 5
+        if keys[pygame.K_s]: self.rect.y += 5
+        for wall in obstacles:
+            if self.rect.colliderect(wall.rect): self.rect.y = old_pos.y
+        if keys[pygame.K_a]: self.rect.x -= 5
+        if keys[pygame.K_d]: self.rect.x += 5
+        for wall in obstacles:
+            if self.rect.colliderect(wall.rect): self.rect.x = old_pos.x
+
+player = None
+obstacles = None
+enemies = None
+bullets = None
+loot_group = None
+paused = False
+state = "MENU"
+
+def reset_game():
+    global player, obstacles, enemies, bullets, loot_group, paused
+    player = Player()
+    obstacles = pygame.sprite.Group()
+    enemies = pygame.sprite.Group()
+    bullets = pygame.sprite.Group()
+    loot_group = pygame.sprite.Group()
+
+    obstacles.add(Obstacle(200, 200, 100, 40))
+    for _ in range(5):
+        enemies.add(Enemy())
+
+async def main():
+    global state
+
+    pygame.init()
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    clock = pygame.time.Clock()
+
+    reset_game()
+    running = True
+    state = "PLAYING_SINGLE"
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                angle = math.atan2(
+                    pygame.mouse.get_pos()[1] - player.rect.centery,
+                    pygame.mouse.get_pos()[0] - player.rect.centerx
+                )
+                bullets.add(Bullet(player.rect.centerx, player.rect.centery, angle, 20, 50, CYAN))
+
+        keys = pygame.key.get_pressed()
+        player.move(keys, obstacles)
+
+        bullets.update(obstacles)
+        enemies.update(player.rect.center, obstacles)
+
+        screen.fill(BLACK)
+        obstacles.draw(screen)
+        bullets.draw(screen)
+        enemies.draw(screen)
+        screen.blit(player.image, player.rect)
+
+        pygame.display.flip()
+        await asyncio.sleep(0)
+        clock.tick(FPS)
+
+    pygame.quit()
+
+asyncio.run(main())
+#-->
+
+</script>
+
 <style>
 body {
     margin: 0;
-    overflow: hidden;
     background: black;
-    font-family: monospace;
 }
-
 canvas {
-    display: block;
-}
-
-.hud {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    color: #ff3c3c;
-    pointer-events: none;
-}
-
-.top {
-    top: 10px;
-}
-
-.bottom {
-    bottom: 10px;
-    font-size: 12px;
-    color: #555;
+    width: 100vw !important;
+    height: 100vh !important;
 }
 </style>
+
 </head>
 
 <body>
-
-<div class="hud top">
-    <h1>FRAGMENT ZERO</h1>
-</div>
-
-<div class="hud bottom">
-    [W,A,S,D] MOVE | [CLICK] SHOOT
-</div>
-
-<canvas id="game"></canvas>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-// PLAYER
-let player = {
-    x: canvas.width / 2,
-    y: canvas.height - 100,
-    size: 40,
-    speed: 6
-};
-
-// INPUT
-let keys = {};
-document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
-
-// BULLETS
-let bullets = [];
-let canShoot = true;
-
-window.addEventListener("click", () => {
-    if (!canShoot) return;
-
-    bullets.push({
-        x: player.x,
-        y: player.y
-    });
-
-    canShoot = false;
-    setTimeout(() => canShoot = true, 200);
-});
-
-// ENEMIES
-let enemies = [];
-
-function spawnEnemy() {
-    enemies.push({
-        x: Math.random() * canvas.width,
-        y: -20,
-        size: 30,
-        speed: 2 + Math.random() * 2
-    });
-}
-
-setInterval(spawnEnemy, 1000);
-
-// GAME LOOP
-function update() {
-
-    // MOVE PLAYER
-    if (keys["a"]) player.x -= player.speed;
-    if (keys["d"]) player.x += player.speed;
-    if (keys["w"]) player.y -= player.speed;
-    if (keys["s"]) player.y += player.speed;
-
-    // LIMIT
-    player.x = Math.max(0, Math.min(canvas.width, player.x));
-    player.y = Math.max(0, Math.min(canvas.height, player.y));
-
-    // MOVE BULLETS
-    bullets.forEach((b, i) => {
-        b.y -= 10;
-        if (b.y < 0) bullets.splice(i, 1);
-    });
-
-    // MOVE ENEMIES
-    enemies.forEach((e, ei) => {
-        e.y += e.speed;
-
-        // COLLISION
-        bullets.forEach((b, bi) => {
-            if (
-                b.x < e.x + e.size &&
-                b.x > e.x - e.size &&
-                b.y < e.y + e.size &&
-                b.y > e.y - e.size
-            ) {
-                enemies.splice(ei, 1);
-                bullets.splice(bi, 1);
-            }
-        });
-
-        // REMOVE IF OFFSCREEN
-        if (e.y > canvas.height) enemies.splice(ei, 1);
-    });
-}
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // PLAYER
-    ctx.fillStyle = "white";
-    ctx.fillRect(player.x - 20, player.y - 20, player.size, player.size);
-
-    // BULLETS
-    ctx.fillStyle = "red";
-    bullets.forEach(b => {
-        ctx.fillRect(b.x - 2, b.y - 10, 4, 10);
-    });
-
-    // ENEMIES
-    ctx.fillStyle = "lime";
-    enemies.forEach(e => {
-        ctx.fillRect(e.x - 15, e.y - 15, e.size, e.size);
-    });
-}
-
-function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-gameLoop();
-</script>
-
+<canvas id="canvas"></canvas>
 </body>
+
 </html>
