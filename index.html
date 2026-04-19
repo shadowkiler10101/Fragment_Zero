@@ -1,175 +1,172 @@
-<html lang="en-us"><script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type=module id="site" data-python="python3.12" data-LINES=42 data-COLUMNS=132 data-os="vtx,snd,gui" async defer>#</script><head>
-<script type="application/javascript">
-// END BLOCK
-config = {
-    xtermjs : "1" ,
-    _sdl2 : "canvas",
-    user_canvas : 0,
-    user_canvas_managed : 0,
-    gui_divider : 2,
-    ume_block : 1,
-    can_close : 0,
-    archive : "fragment_zero",
-    gui_debug : 2,
-    cdn : "https://pygame-web.github.io/cdn/0.9.3/",
-    autorun : 0,
-    PYBUILD : "3.12",
-    fb_ar   :  1.77,
-    fb_width : "1280",
-    fb_height : "720"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fragment Zero</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: black;
+    font-family: monospace;
 }
 
-function show_infobox() {
-    infobox.style.display = "block";
-    const w = infobox.offsetWidth;
-    const h = infobox.offsetHeight;
-    const left = (window.innerWidth - w) / 2;
-    const top = (window.innerHeight - h) / 2;
-    infobox.style.left = left + "px";
-    infobox.style.top = top + "px";
+canvas {
+    display: block;
 }
-</script>
 
-    <title>Fragment Zero | FCD Terminal</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
+.hud {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    color: #ff3c3c;
+    pointer-events: none;
+}
 
-    <style>
-        body {
-            background-color: #000;
-            color: #ff3c3c;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            font-family: 'Consolas', 'Courier New', monospace;
-        }
+.top {
+    top: 10px;
+}
 
-        #canvas {
-            width: 100vw !important;
-            height: 100vh !important;
-            object-fit: contain;
-            image-rendering: pixelated;
-            z-index: 5;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        .hud-top {
-            position: absolute;
-            top: 20px;
-            width: 100%;
-            text-align: center;
-            z-index: 10;
-            pointer-events: none;
-            letter-spacing: 3px;
-        }
-
-        .hud-bottom {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            text-align: center;
-            z-index: 10;
-            pointer-events: none;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .hud-side {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 10px;
-            z-index: 10;
-            pointer-events: none;
-            color: rgba(255, 60, 60, 0.6);
-        }
-
-        #infobox {
-            position: fixed;
-            background: #000;
-            color: #ff3c3c;
-            border: 2px solid #ff3c3c;
-            box-shadow: 0 0 15px #ff3c3c;
-            font-weight: bold;
-            padding: 15px 30px;
-            z-index: 999999;
-            text-transform: uppercase;
-        }
-
-        #transfer {
-            position: absolute;
-            z-index: 20;
-            text-align: center;
-        }
-
-        #progress {
-            accent-color: #ff3c3c;
-            width: 250px;
-            height: 4px;
-        }
-
-        canvas.emscripten { border: 0px none; background-color: transparent; padding: 0; margin: 0; }
-        
-        /* These must remain in the DOM for the JS to find them */
-        #pyconsole, #system, #info, #box { 
-            position: absolute;
-            visibility: hidden;
-            pointer-events: none;
-        }
-    </style>
-    <script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>
+.bottom {
+    bottom: 10px;
+    font-size: 12px;
+    color: #555;
+}
+</style>
 </head>
 
 <body>
-    <div class="hud-top">
-        <h1 style="margin:0; font-size: 24px;">FRAGMENT_ZERO</h1>
-        <div style="font-size: 10px; color: #ff3c3c;">DEPARTMENT: FRAGMENT CONTAINMENT DIVISION</div>
-    </div>
 
-    <div class="hud-side" style="left: 20px;">
-        <p>STATUS: UNSTABLE</p>
-        <p>SECTOR: F-0</p>
-    </div>
+<div class="hud top">
+    <h1>FRAGMENT ZERO</h1>
+</div>
 
-    <div class="hud-side" style="right: 20px; text-align: right;">
-        <p>UNIT: ZERO DIVISION</p>
-        <p>THREAT: PARASITIC</p>
-    </div>
+<div class="hud bottom">
+    [W,A,S,D] MOVE | [CLICK] SHOOT
+</div>
 
-    <div class="hud-bottom">
-        [W,A,S,D] MOVE | [L-CLICK] FIRE | [R-CLICK] MELEE | [Q] SWAP
-    </div>
+<canvas id="game"></canvas>
 
-    <div id="transfer">
-        <div class="emscripten" id="status" style="color:#ff3c3c; font-size:12px;">LOADING CONTAINMENT PROTOCOLS...</div>
-        <div class="emscripten">
-            <progress value="0" max="100" id="progress"></progress>
-        </div>
-    </div>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=1></canvas>
-    <canvas class="emscripten" id="canvas3d" hidden></canvas>
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-    <div id="infobox">FCD AUTHENTICATION REQUIRED...</div>
+// PLAYER
+let player = {
+    x: canvas.width / 2,
+    y: canvas.height - 100,
+    size: 40,
+    speed: 6
+};
 
-    <div id="pyconsole"><div id="terminal"></div></div>
-    <div id="system"></div>
-    <div id="info"></div>
-    <div id="box"><iframe id="iframe"></iframe></div>
+// INPUT
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
 
-    <script type="application/javascript">
-        // Crucial: This must match the original ID calls exactly
-        async function custom_onload(debug_hidden) {
-            show_infobox();
-        }
-    </script>
+// BULLETS
+let bullets = [];
+let canShoot = true;
+
+window.addEventListener("click", () => {
+    if (!canShoot) return;
+
+    bullets.push({
+        x: player.x,
+        y: player.y
+    });
+
+    canShoot = false;
+    setTimeout(() => canShoot = true, 200);
+});
+
+// ENEMIES
+let enemies = [];
+
+function spawnEnemy() {
+    enemies.push({
+        x: Math.random() * canvas.width,
+        y: -20,
+        size: 30,
+        speed: 2 + Math.random() * 2
+    });
+}
+
+setInterval(spawnEnemy, 1000);
+
+// GAME LOOP
+function update() {
+
+    // MOVE PLAYER
+    if (keys["a"]) player.x -= player.speed;
+    if (keys["d"]) player.x += player.speed;
+    if (keys["w"]) player.y -= player.speed;
+    if (keys["s"]) player.y += player.speed;
+
+    // LIMIT
+    player.x = Math.max(0, Math.min(canvas.width, player.x));
+    player.y = Math.max(0, Math.min(canvas.height, player.y));
+
+    // MOVE BULLETS
+    bullets.forEach((b, i) => {
+        b.y -= 10;
+        if (b.y < 0) bullets.splice(i, 1);
+    });
+
+    // MOVE ENEMIES
+    enemies.forEach((e, ei) => {
+        e.y += e.speed;
+
+        // COLLISION
+        bullets.forEach((b, bi) => {
+            if (
+                b.x < e.x + e.size &&
+                b.x > e.x - e.size &&
+                b.y < e.y + e.size &&
+                b.y > e.y - e.size
+            ) {
+                enemies.splice(ei, 1);
+                bullets.splice(bi, 1);
+            }
+        });
+
+        // REMOVE IF OFFSCREEN
+        if (e.y > canvas.height) enemies.splice(ei, 1);
+    });
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // PLAYER
+    ctx.fillStyle = "white";
+    ctx.fillRect(player.x - 20, player.y - 20, player.size, player.size);
+
+    // BULLETS
+    ctx.fillStyle = "red";
+    bullets.forEach(b => {
+        ctx.fillRect(b.x - 2, b.y - 10, 4, 10);
+    });
+
+    // ENEMIES
+    ctx.fillStyle = "lime";
+    enemies.forEach(e => {
+        ctx.fillRect(e.x - 15, e.y - 15, e.size, e.size);
+    });
+}
+
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
 </body>
 </html>
