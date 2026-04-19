@@ -1,7 +1,6 @@
 <html lang="en-us"><script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type=module id="site" data-python="python3.12" data-LINES=42 data-COLUMNS=132 data-os="vtx,snd,gui" async defer>#</script><head>
 <script type="application/javascript">
 // END BLOCK
-
 config = {
     xtermjs : "1" ,
     _sdl2 : "canvas",
@@ -29,13 +28,11 @@ function show_infobox() {
     infobox.style.left = left + "px";
     infobox.style.top = top + "px";
 }
-
 </script>
 
-    <title>Fragment Zero | Shinigami Osama</title>
+    <title>Fragment Zero | FCD Terminal</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
     <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
 
     <style>
@@ -61,7 +58,6 @@ function show_infobox() {
             z-index: 1;
         }
 
-        /* Tactical HUD Overlays */
         .hud-top {
             position: absolute;
             top: 20px;
@@ -105,11 +101,10 @@ function show_infobox() {
             text-transform: uppercase;
         }
 
-        #status {
-            color: #ff3c3c;
-            font-size: 14px;
-            text-transform: uppercase;
-            margin-bottom: 5px;
+        #transfer {
+            position: absolute;
+            z-index: 20;
+            text-align: center;
         }
 
         #progress {
@@ -118,40 +113,26 @@ function show_infobox() {
             height: 4px;
         }
 
-        #transfer {
-            position: absolute;
-            z-index: 20;
-            text-align: center;
-        }
-
-        canvas.emscripten {
-            border: 0px none;
-            background-color: transparent;
-            padding: 0;
-            margin: 0;
-        }
+        canvas.emscripten { border: 0px none; background-color: transparent; padding: 0; margin: 0; }
+        #pyconsole, #system, #info, #box { display: none; } /* Fixes the rejection error */
     </style>
-
     <script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>
 </head>
 
 <body>
-
     <div class="hud-top">
         <h1 style="margin:0; font-size: 24px;">FRAGMENT_ZERO</h1>
-        <div style="font-size: 10px; color: #ff3c3c;">ARCHITECT: SHINIGAMI_OSAMA</div>
+        <div style="font-size: 10px; color: #ff3c3c;">DEPARTMENT: FRAGMENT CONTAINMENT DIVISION</div>
     </div>
 
     <div class="hud-side" style="left: 20px;">
         <p>STATUS: UNSTABLE</p>
-        <p>LINK: ESTABLISHED</p>
-        <p>SECTOR: 06</p>
+        <p>SECTOR: F-0</p>
     </div>
 
     <div class="hud-side" style="right: 20px; text-align: right;">
-        <p>PARASITE_ID: PP-Ω06</p>
-        <p>COGNITION: REDACTED</p>
-        <p>VRS: 0.9.3</p>
+        <p>UNIT: ZERO DIVISION</p>
+        <p>THREAT: PARASITIC</p>
     </div>
 
     <div class="hud-bottom">
@@ -159,20 +140,22 @@ function show_infobox() {
     </div>
 
     <div id="transfer">
-        <div class="emscripten" id="status">SYST_INIT...</div>
+        <div class="emscripten" id="status" style="color:#ff3c3c; font-size:12px;">LOADING CONTAINMENT PROTOCOLS...</div>
         <div class="emscripten">
             <progress value="0" max="100" id="progress"></progress>
         </div>
     </div>
 
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=1></canvas>
+    <div id="infobox">FCD AUTHENTICATION REQUIRED...</div>
 
-    <div id="infobox">INITIALIZING NEURAL LINK...</div>
+    <div id="pyconsole" hidden></div>
+    <div id="system" hidden></div>
+    <div id="info" hidden></div>
+    <div id="box" hidden></div>
 
     <script type="application/javascript">
         async function custom_onload(debug_hidden) {
-            pyconsole.hidden = debug_hidden;
-            transfer.hidden = debug_hidden;
             show_infobox();
         }
     </script>
