@@ -55,7 +55,7 @@ function show_infobox() {
             height: 100vh !important;
             object-fit: contain;
             image-rendering: pixelated;
-            z-index: 1;
+            z-index: 5;
             position: absolute;
             top: 0;
             left: 0;
@@ -118,8 +118,12 @@ function show_infobox() {
 
         canvas.emscripten { border: 0px none; background-color: transparent; padding: 0; margin: 0; }
         
-        /* Keep these hidden but present so the original JS doesn't crash */
-        #pyconsole, #system, #info, #box { display: none; }
+        /* These must remain in the DOM for the JS to find them */
+        #pyconsole, #system, #info, #box { 
+            position: absolute;
+            visibility: hidden;
+            pointer-events: none;
+        }
     </style>
     <script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>
 </head>
@@ -152,15 +156,17 @@ function show_infobox() {
     </div>
 
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=1></canvas>
-    
+    <canvas class="emscripten" id="canvas3d" hidden></canvas>
+
     <div id="infobox">FCD AUTHENTICATION REQUIRED...</div>
 
-    <div id="pyconsole"></div>
+    <div id="pyconsole"><div id="terminal"></div></div>
     <div id="system"></div>
     <div id="info"></div>
-    <div id="box"></div>
+    <div id="box"><iframe id="iframe"></iframe></div>
 
     <script type="application/javascript">
+        // Crucial: This must match the original ID calls exactly
         async function custom_onload(debug_hidden) {
             show_infobox();
         }
