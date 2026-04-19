@@ -56,6 +56,9 @@ function show_infobox() {
             object-fit: contain;
             image-rendering: pixelated;
             z-index: 1;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         .hud-top {
@@ -114,7 +117,9 @@ function show_infobox() {
         }
 
         canvas.emscripten { border: 0px none; background-color: transparent; padding: 0; margin: 0; }
-        #pyconsole, #system, #info, #box { display: none; } /* Fixes the rejection error */
+        
+        /* Keep these hidden but present so the original JS doesn't crash */
+        #pyconsole, #system, #info, #box { display: none; }
     </style>
     <script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>
 </head>
@@ -147,12 +152,13 @@ function show_infobox() {
     </div>
 
     <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=1></canvas>
+    
     <div id="infobox">FCD AUTHENTICATION REQUIRED...</div>
 
-    <div id="pyconsole" hidden></div>
-    <div id="system" hidden></div>
-    <div id="info" hidden></div>
-    <div id="box" hidden></div>
+    <div id="pyconsole"></div>
+    <div id="system"></div>
+    <div id="info"></div>
+    <div id="box"></div>
 
     <script type="application/javascript">
         async function custom_onload(debug_hidden) {
