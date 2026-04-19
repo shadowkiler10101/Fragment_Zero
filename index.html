@@ -190,6 +190,24 @@ function show_infobox() {
     <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
 
     <style>
+        body {
+    background-color: #05050a; /* Deep dark blue-black */
+    color: #ff3c3c;           /* Your signature Red */
+    font-family: 'Consolas', monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+
+#canvas {
+    border: 2px solid #ff3c3c;
+    box-shadow: 0 0 20px rgba(255, 60, 60, 0.5); /* Red Glow */
+    border-radius: 5px;
+}
         #status {
             display: inline-block;
             vertical-align: top;
